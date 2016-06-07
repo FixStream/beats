@@ -190,31 +190,47 @@ func (c *Condition) Check(event common.MapStr) bool {
 
 func (c *Condition) checkEquals(event common.MapStr) bool {
 
+	isEqual := true
 	for field, equalValue := range c.equals {
+		//if same attribute has multiple values, field will have number appended eg. ip.0,ip.1... and we need to support http.code
 
 		value, err := event.GetValue(field)
 		if err != nil {
-			return false
+			isEqual = false
+		}
+
+		if value == nil && strings.Contains(field, ".") {
+			fieldNames := strings.Split(field, ".")
+			field = fieldNames[0]
+			value, err = event.GetValue(field)
 		}
 
 		intValue, err := extractInt(value)
 		if err == nil {
 			if intValue != equalValue.Int {
-				return false
+				isEqual = false
 			}
 		} else {
 			sValue, err := extractString(value)
 			if err != nil {
 				logp.Warn("unexpected type %T in equals condition as it accepts only integers and strings. ", value)
-				return false
+				isEqual = false
 			}
+
 			if sValue != equalValue.Str {
-				return false
+				isEqual = false
+			} else {
+				isEqual = true
 			}
+
+		}
+
+		if isEqual == true {
+			return isEqual
 		}
 	}
 
-	return true
+	return isEqual
 
 }
 

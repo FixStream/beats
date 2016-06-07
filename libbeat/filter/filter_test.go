@@ -399,6 +399,101 @@ func TestDropEvent(t *testing.T) {
 	assert.Nil(t, filteredEvent)
 }
 
+func TestAddEvent(t *testing.T) {
+
+	if testing.Verbose() {
+		logp.LogInit(logp.LOG_DEBUG, "", false, true, []string{"*"})
+	}
+
+	yml := []map[string]interface{}{
+		map[string]interface{}{
+			"add_event": map[string]interface{}{
+				"equals": map[string]string{
+					"type": "process",
+				},
+			},
+		},
+	}
+
+	filters := GetFilters(t, yml)
+
+	event := common.MapStr{
+		"@timestamp": "2016-01-24T18:35:19.308Z",
+		"beat": common.MapStr{
+			"hostname": "mar",
+			"name":     "my-shipper-1",
+		},
+		"proc": common.MapStr{
+			"cpu": common.MapStr{
+				"start_time": "Jan14",
+				"system":     26027,
+				"total":      79390,
+				"total_p":    0,
+				"user":       53363,
+			},
+			"name":    "test-1",
+			"cmdline": "/sbin/launchd",
+			"mem": common.MapStr{
+				"rss":   11194368,
+				"rss_p": 0,
+				"share": 0,
+				"size":  2555572224,
+			},
+		},
+		"type": "process",
+	}
+
+	filteredEvent := filters.Filter(event)
+
+	assert.NotNil(t, filteredEvent)
+}
+
+/* If the condition is empty, none of the event will be added*/
+func TestAddEventEmptyCondition(t *testing.T) {
+
+	if testing.Verbose() {
+		logp.LogInit(logp.LOG_DEBUG, "", false, true, []string{"*"})
+	}
+
+	yml := []map[string]interface{}{
+		map[string]interface{}{
+			"add_event": map[string]interface{}{},
+		},
+	}
+
+	filters := GetFilters(t, yml)
+
+	event := common.MapStr{
+		"@timestamp": "2016-01-24T18:35:19.308Z",
+		"beat": common.MapStr{
+			"hostname": "mar",
+			"name":     "my-shipper-1",
+		},
+		"proc": common.MapStr{
+			"cpu": common.MapStr{
+				"start_time": "Jan14",
+				"system":     26027,
+				"total":      79390,
+				"total_p":    0,
+				"user":       53363,
+			},
+			"name":    "test-1",
+			"cmdline": "/sbin/launchd",
+			"mem": common.MapStr{
+				"rss":   11194368,
+				"rss_p": 0,
+				"share": 0,
+				"size":  2555572224,
+			},
+		},
+		"type": "process",
+	}
+
+	filteredEvent := filters.Filter(event)
+
+	assert.Nil(t, filteredEvent)
+}
+
 func TestEmptyCondition(t *testing.T) {
 
 	if testing.Verbose() {
@@ -442,6 +537,41 @@ func TestEmptyCondition(t *testing.T) {
 	filteredEvent := filters.Filter(event)
 
 	assert.Nil(t, filteredEvent)
+}
+
+func TestAddEventBadCondition(t *testing.T) {
+
+	if testing.Verbose() {
+		logp.LogInit(logp.LOG_DEBUG, "", false, true, []string{"*"})
+	}
+
+	yml := []map[string]interface{}{
+		map[string]interface{}{
+			"add_event": map[string]interface{}{
+				"equa": map[string]string{
+					"type": "process",
+				},
+			},
+		},
+	}
+
+	config := filter.FilterPluginConfig{}
+
+	for _, rule := range yml {
+		c := map[string]common.Config{}
+
+		for name, ruleYml := range rule {
+			ruleConfig, err := common.NewConfigFrom(ruleYml)
+			assert.Nil(t, err)
+
+			c[name] = *ruleConfig
+		}
+		config = append(config, c)
+	}
+
+	_, err := filter.New(config)
+	assert.NotNil(t, err)
+
 }
 
 func TestBadCondition(t *testing.T) {

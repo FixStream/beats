@@ -1,0 +1,93 @@
+
+
+
+GO Version : 1.6.2
+PacketBeat Version : v5.0.0-alpha3
+
+
+
+Compiling source code on Centos
+===============================
+
+Install  GO Compiler from the following url. 
+https://golang.org/dl/
+
+Add the GO bin location to the path.
+export PATH=$PATH:/usr/local/go/bin
+
+Install the libpcap and devlibpcap using the following  command.
+ sudo yum install libpcap libpcap-devel
+
+Add the GO Source code directory to the GOPATH.
+export GOPATH=/opt/beats/beatsgit/
+
+Clone the source code from the following repository.
+https://github.com/FixStream/beats.git
+Local location : 	<GOPATH>/src/github.com/elastic/
+
+Compile the libbeat using the following command. This will generate the libbeat executable without running the testcase.
+cd <INSTALLATION DIRECTORY>/beats/libbeat/
+make
+
+To run the testcase for libbeat, use the following command
+cd <INSTALLATION DIRECTORY>/beats/libbeat/
+make testsuite
+
+Compile the packetbeat using the following commands. This will generate the packetbeat executable without running the testcases.
+cd <INSTALLATION DIRECTORY>/beats/packetbeat/
+make
+
+To run the testcase for packetbeat use the following command
+cd <INSTALLATION DIRECTORY>/beats/packetbeat/
+make testsuite
+
+Packetbeat executable will be generated in the following location.
+
+cd <INSTALLATION DIRECTORY>/beats/packetbeat/
+file name : packetbeat
+
+Please note GO will generate platform specific compiled version, if you want to enable the Cross Compilation use the following command to compile
+make crosscompile
+
+
+Configuring PacketBeat
+=======================
+
+For listening to specific interfaces, mention the interface name in this config in PacketBeat.yml file.
+packetbeat.interfaces.device: any
+or
+packetbeat.interfaces.device: eth0
+
+
+Disabling for specific protocol listening.
+In the PacketBeat.yml file, comment the protocol config information.
+
+Filtering packet only for selected servers.
+In the PacketBeat.yml file, filter section, add the following configuration. Only the transactions from these servers will be recorded.
+
+
+filters:
+  - add_event:
+      equals:
+        ip: ["172.16.5.11","192.168.128.100"]
+
+
+Redirecting the output to Kafka.
+In the PacketBeat.yml file, enable Kafka output with following config.
+
+output.kafka:
+	  hosts: ["172.16.5.11:6667"]
+	  topic: beats
+
+
+
+
+Running PacketBeat
+==================
+
+ sudo ./packetbeat -e -c packetbeat.yml -d "publish"
+
+
+
+
+

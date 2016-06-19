@@ -3,14 +3,17 @@ package beater
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"runtime"
 	"sync"
 	"time"
 
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common/droppriv"
+	"github.com/elastic/beats/libbeat/common/ipfilter"
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/libbeat/service"
+	"github.com/gorilla/mux"
 	"github.com/tsg/gopacket/layers"
 
 	"github.com/elastic/beats/packetbeat/config"
@@ -24,6 +27,8 @@ import (
 	"github.com/elastic/beats/packetbeat/publish"
 	"github.com/elastic/beats/packetbeat/sniffer"
 )
+
+var quit chan struct{} = make(chan struct{})
 
 // Beater object. Contains all objects needed to run the beat
 type Packetbeat struct {
@@ -250,6 +255,22 @@ func (pb *Packetbeat) Run(b *beat.Beat) error {
 		}
 	}()
 
+	// start http service
+	if router, err := ipfilter.GetHTTPRoute(); err == nil {
+		wg.Add(1)
+		go func(r *mux.Router) {
+			defer wg.Done()
+			logp.Debug("main", "http server starting at :8000")
+			http.ListenAndServe(":8000", r)
+			for {
+				select {
+				case <-quit:
+					return
+				}
+			}
+		}(router)
+	}
+
 	logp.Debug("main", "Waiting for the sniffer to finish")
 	wg.Wait()
 	select {
@@ -288,5 +309,6 @@ func (pb *Packetbeat) Cleanup(b *beat.Beat) error {
 // Called by the Beat stop function
 func (pb *Packetbeat) Stop() {
 	logp.Info("Packetbeat send stop signal")
+	close(quit)
 	pb.Sniff.Stop()
 }

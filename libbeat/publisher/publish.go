@@ -7,7 +7,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/boltdb/bolt"
 	"github.com/elastic/beats/libbeat/common"
+	"github.com/elastic/beats/libbeat/common/ipfilter"
 	"github.com/elastic/beats/libbeat/common/op"
 	"github.com/elastic/beats/libbeat/filter"
 	"github.com/elastic/beats/libbeat/logp"
@@ -57,6 +59,7 @@ type Publisher struct {
 	TopologyOutput outputs.TopologyOutputer
 	IgnoreOutgoing bool
 	GeoLite        *libgeo.GeoIP
+	IPFilterDB     *bolt.DB
 	Filters        *filter.Filters
 
 	globalEventMetadata common.EventMetadata // Fields and tags to add to each event.
@@ -217,6 +220,7 @@ func (publisher *Publisher) init(
 	}
 
 	publisher.GeoLite = common.LoadGeoIPData(shipper.Geoip)
+	publisher.IPFilterDB = ipfilter.InitDB("/tmp/ipFilter.db")
 
 	publisher.wsPublisher.Init()
 	publisher.wsOutput.Init()

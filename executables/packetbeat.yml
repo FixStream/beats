@@ -11,7 +11,7 @@
 
 # Select the network interface to sniff the data. You can use the "any"
 # keyword to sniff on all connected interfaces.
-packetbeat.interfaces.device: any
+packetbeat.interfaces.device: en0
 
 # Packetbeat supports three sniffer types:
 # * pcap, which uses the libpcap library and works on most platforms, but it’s
@@ -449,7 +449,7 @@ packetbeat.protocols.nfs:
 #
 # The following example drops the events that have the HTTP response code 200:
 #
- 
+
 filters:
   - add_event:
       equals:
@@ -879,4 +879,3 @@ logging.files:
 
   # Number of rotated log files to keep. Oldest files will be deleted first.
   #keepfiles: 7
-

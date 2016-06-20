@@ -246,7 +246,7 @@ func (pb *Packetbeat) Run(b *beat.Beat) error {
 	errC := make(chan error, 1)
 
 	// Run the sniffer in background
-	wg.Add(1)
+	wg.Add(2)
 	go func() {
 		defer wg.Done()
 		err := pb.Sniff.Run()
@@ -257,14 +257,13 @@ func (pb *Packetbeat) Run(b *beat.Beat) error {
 
 	// start http service
 	if router, err := ipfilter.GetHTTPRoute(); err == nil {
-		wg.Add(1)
 		go func(r *mux.Router) {
-			defer wg.Done()
 			logp.Debug("main", "http server starting at :8000")
 			http.ListenAndServe(":8000", r)
 			for {
 				select {
 				case <-quit:
+					wg.Done()
 					return
 				}
 			}

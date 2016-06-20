@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/boltdb/bolt"
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/common/ipfilter"
 	"github.com/elastic/beats/libbeat/logp"
@@ -138,27 +137,14 @@ func (t *PacketbeatPublisher) onFlow(events []common.MapStr) {
 }
 
 func validateEvent(pub *publisher.Publisher, event common.MapStr) error {
-	var err error
 	dst, ok := event["dst"].(*common.Endpoint)
 	debugf("has dst: %v", ok)
 	if ok {
 		logp.Info("destination ip %s", dst.Ip)
-		err = pub.IPFilterDB.View(func(tx *bolt.Tx) error {
-			bucket := tx.Bucket([]byte(ipfilter.BucketName))
-			if bucket == nil {
-				return errors.New("bucket not available")
-			}
-			ok := bucket.Get([]byte(dst.Ip))
-			logp.Info("ip found:: %s", string(ok))
-			if ok != nil {
-				logp.Info("ip found dropping event for %s", string(ok))
-				return errors.New("DropEvent")
-			}
-			return nil
-		})
-	}
-	if err != nil {
-		return err
+		_, err := pub.IPFilterDB.Get(ipfilter.BucketName, dst.Ip)
+		if err != nil {
+			return err
+		}
 	}
 	ts, ok := event["@timestamp"]
 	if !ok {
@@ -181,32 +167,6 @@ func validateEvent(pub *publisher.Publisher, event common.MapStr) error {
 
 	return nil
 }
-
-// filterEvent validates an event for common required fields with types.
-// If event is to be filtered out the reason is returned as error.
-// func validateEvent(event common.MapStr) error {
-// 	ts, ok := event["@timestamp"]
-// 	if !ok {
-// 		return errors.New("missing '@timestamp' field from event")
-// 	}
-//
-// 	_, ok = ts.(common.Time)
-// 	if !ok {
-// 		return errors.New("invalid '@timestamp' field from event")
-// 	}
-//
-// 	t, ok := event["type"]
-// 	if !ok {
-// 		return errors.New("missing 'type' field from event")
-// 	}
-//
-// 	_, ok = t.(string)
-// 	if !ok {
-// 		return errors.New("invalid 'type' field from event")
-// 	}
-//
-// 	return nil
-// }
 
 func normalizeTransAddr(pub *publisher.Publisher, event common.MapStr) bool {
 	debugf("normalize address for: %v", event)
@@ -250,6 +210,17 @@ func normalizeTransAddr(pub *publisher.Publisher, event common.MapStr) bool {
 		if pub.IsPublisherIP(dst.Ip) {
 			// incoming transaction
 			event["direction"] = "in"
+		}
+
+		// Add orgID details to event before publish
+		if pub.IPFilterDB != nil {
+			logp.Info("IPFilterDB ip %s", dst.Ip)
+			var ir ipfilter.IpRule
+			if err := pub.IPFilterDB.GetJSON(ipfilter.BucketName, dst.Ip, &ir); err == nil {
+				if orgID := ir.OrgID; orgID != "" {
+					event["orgId"] = orgID
+				}
+			}
 		}
 
 	}

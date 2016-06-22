@@ -44,13 +44,16 @@ func (d *DBorm) GetAll(bucket string) (jsons []map[string]string, err error) {
 }
 
 // GetJSON json value of given bucket and key
-func (d *DBorm) GetJSON(bucket, key string, v interface{}) error {
-	if data, ok := d.Get(bucket, key); ok != nil {
+func (d *DBorm) GetJSON(bucket, key string, v *IpRule) error {
+	if data, ok := d.Get(bucket, key); ok == nil {
+		//	logp.Info("getJsonorgid3 %s", data)
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
+		//	logp.Info("getJsonorgid1 %v", v)
 		return nil
 	}
+	//	logp.Info("getJsonorgid2 %v", v)
 	return nil
 }
 

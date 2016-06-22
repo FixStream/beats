@@ -141,10 +141,17 @@ func validateEvent(pub *publisher.Publisher, event common.MapStr) error {
 	debugf("has dst: %v", ok)
 	if ok {
 		logp.Info("destination ip %s", dst.Ip)
-		_, err := pub.IPFilterDB.Get(ipfilter.BucketName, dst.Ip)
+		dbData, err := pub.IPFilterDB.Get(ipfilter.BucketName, dst.Ip)
+		//logp.Info("eredestinationip %s", dbData)
 		if err != nil {
+			//logp.Info("erroredestinationip %s", err)
 			return err
 		}
+
+		if len(dbData) == 0 {
+			return errors.New("Invalid event")
+		}
+
 	}
 	ts, ok := event["@timestamp"]
 	if !ok {
@@ -214,13 +221,16 @@ func normalizeTransAddr(pub *publisher.Publisher, event common.MapStr) bool {
 
 		// Add orgID details to event before publish
 		if pub.IPFilterDB != nil {
-			logp.Info("IPFilterDB ip %s", dst.Ip)
+			//	logp.Info("IPFilterDB ip %s", dst.Ip)
 			var ir ipfilter.IpRule
+
 			if err := pub.IPFilterDB.GetJSON(ipfilter.BucketName, dst.Ip, &ir); err == nil {
+				//logp.Info("logIPFilterDB1 %v", ir)
 				if orgID := ir.OrgID; orgID != "" {
 					event["orgId"] = orgID
 				}
 			}
+			//logp.Info("logIPFilterDB2 %v", ir)
 		}
 
 	}

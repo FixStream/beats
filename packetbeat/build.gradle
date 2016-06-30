@@ -22,7 +22,7 @@ apply from: 'build/gradle/meridian-gradle-commons-1.0.0-commons.gradle'
 
 description = """meridian-beats"""
 
-task package(type: Zip) {
+task archive(type: Zip) {
     from "packetbeat"
     from "packetbeat.template.json"
     from "packetbeat.yml"
@@ -31,7 +31,7 @@ task package(type: Zip) {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            artifact package
+            artifact archive
         }
     }
 }
